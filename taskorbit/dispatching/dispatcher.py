@@ -38,7 +38,9 @@ class Dispatcher(Router):
             logger.debug(self.queue)
 
     async def __processing_task_messages(self, metadata: TaskMessage) -> None:
-        handler: Optional[Type[HandlerType]] = await self.find_handler(metadata=metadata)
+        handler: Optional[Type[HandlerType]] = await self.find_handler(
+            metadata=metadata
+        )
         if handler is None:
             raise RuntimeError("Handler not found")
 
@@ -46,7 +48,11 @@ class Dispatcher(Router):
 
         if isinstance(handler, abc.ABCMeta):
             class_instance = handler(**get_list_parameters(handler.__init__, metadata))
-            self.queue[metadata.uuid] = (class_instance, WorkerType.class_type, metadata)
+            self.queue[metadata.uuid] = (
+                class_instance,
+                WorkerType.class_type,
+                metadata,
+            )
         else:
             self.queue[metadata.uuid] = (handler, WorkerType.function_type, metadata)
 
@@ -59,4 +65,3 @@ class Dispatcher(Router):
             await self.__processing_service_messages(metadata)
         elif isinstance(metadata, TaskMessage):
             await self.__processing_task_messages(metadata)
-

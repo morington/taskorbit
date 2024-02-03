@@ -21,9 +21,15 @@ class BaseType:
     @classmethod
     def validate_fields(cls, data: set[str]) -> bool:
         if not isinstance(data, set):
-            raise TypeError(f"The `data` must be a set, but received {type(data).__name__}")
+            raise TypeError(
+                f"The `data` must be a set, but received {type(data).__name__}"
+            )
 
-        return data == {field.name for field in fields(cls) if field.default is not None or field.name in data}
+        return data == {
+            field.name
+            for field in fields(cls)
+            if field.default is not None or field.name in data
+        }
 
 
 @dataclass

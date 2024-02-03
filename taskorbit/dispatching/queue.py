@@ -20,7 +20,9 @@ class Queue(dict):
         handler, type_handler, metadata = value
         if type_handler == WorkerType.class_type:
             asyncio.create_task(
-                handler.__call__(queue=self, **get_list_parameters(handler.__call__, metadata))
+                handler.__call__(
+                    queue=self, **get_list_parameters(handler.__call__, metadata)
+                )
             )
         elif type_handler == WorkerType.function_type:
             asyncio.create_task(handler(**get_list_parameters(handler, metadata)))

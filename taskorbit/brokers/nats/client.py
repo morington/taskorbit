@@ -31,13 +31,12 @@ class NatsBroker:
         return await self.jetstream.subscribe(
             stream=self.config.stream,
             subject=self.config.subject,
-            durable=self.config.durable
+            durable=self.config.durable,
         )
 
     async def _creating_stream(self) -> None:
         await self.jetstream.add_stream(
-            name=self.config.stream,
-            subjects=[self.config.subject]
+            name=self.config.stream, subjects=[self.config.subject]
         )
 
     async def _builder_subscriber(self) -> JetStreamContext.PushSubscription:
@@ -52,7 +51,9 @@ class NatsBroker:
 
     async def include_dispatcher(self, dp: Dispatcher) -> None:
         if not isinstance(dp, Dispatcher):
-            raise TypeError(f"The `middleware` must be an instance of Middleware, but received {type(dp).__name__}")
+            raise TypeError(
+                f"The `middleware` must be an instance of Middleware, but received {type(dp).__name__}"
+            )
 
         if self.jetstream is None:
             await self.startup()
@@ -67,18 +68,20 @@ class NatsBroker:
                     logger.warning(f"The message has an unknown format: {data}")
                 else:
                     fields_data = set(data.keys())
-                    # try:
-                    if TaskMessage.validate_fields(fields_data):
-                        metadata: TaskMessage = TaskMessage(**data)
-                    elif ServiceMessage.validate_fields(fields_data):
-                        metadata: ServiceMessage = ServiceMessage(**data)
-                    else:
-                        raise TypeError(f"The message has an unknown format: {fields_data}")
+                    try:
+                        if TaskMessage.validate_fields(fields_data):
+                            metadata: TaskMessage = TaskMessage(**data)
+                        elif ServiceMessage.validate_fields(fields_data):
+                            metadata: ServiceMessage = ServiceMessage(**data)
+                        else:
+                            raise TypeError(
+                                f"The message has an unknown format: {fields_data}"
+                            )
 
-                    await dp.listen(metadata=metadata)
-                    # except TypeError as exc:
-                    #     logger.error(f"TypeError: {exc.args[0]}")
-                    # except Exception as exc:
-                    #     logger.error(f"Exception: {exc}")
+                        await dp.listen(metadata=metadata)
+                    except TypeError as exc:
+                        logger.error(f"TypeError: {exc.args[0]}")
+                    except Exception as exc:
+                        logger.error(f"Exception: {exc}")
 
                 await msg.ack()

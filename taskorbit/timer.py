@@ -7,7 +7,7 @@ class TimerManager:
         self.timers: list[asyncio.Task] = []
 
     async def start_timer(
-            self, timeout: Optional[int], callback: Callable[[], Awaitable[None]]
+        self, timeout: Optional[int], callback: Callable[[], Awaitable[None]]
     ) -> Optional[asyncio.Task]:
         async def timer() -> None:
             await asyncio.sleep(timeout)
@@ -19,7 +19,7 @@ class TimerManager:
             return task
 
     def cancel_timers(self, *args):
-        print('Closing timers')
+        print("Closing timers")
         for timer in self.timers:
             timer.cancel()
         self.timers.clear()

@@ -10,7 +10,9 @@ from taskorbit.models import Message, TaskMessage
 
 async def evaluate_filters(filters: FilterType, metadata: TaskMessage) -> bool:
     for condition in filters:
-        if isinstance(condition, MagicFilter) and not condition.resolve(AttrDict(metadata=metadata)):
+        if isinstance(condition, MagicFilter) and not condition.resolve(
+            AttrDict(metadata=metadata)
+        ):
             return False
         elif isinstance(condition, bool) and not condition:
             return False
@@ -32,19 +34,15 @@ def validate_filters(filters: FilterType) -> tuple[FilterType]:
             )
 
     if not filters:
-        filters = (True, )
+        filters = (True,)
 
     return filters
 
 
 def get_list_parameters(func: Callable, metadata: TaskMessage) -> dict[str, Any]:
     _metadata = asdict(metadata)
-    data = _metadata.pop('context_data')
-    data['message'] = Message(**_metadata)
+    data = _metadata.pop("context_data")
+    data["message"] = Message(**_metadata)
 
     _sig = inspect.signature(func)
     return {param: value for param, value in data.items() if param in _sig.parameters}
-
-
-
-
