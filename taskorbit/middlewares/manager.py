@@ -1,5 +1,6 @@
+from taskorbit.filter import FilterType
 from taskorbit.middlewares.middleware import Middleware
-from taskorbit.types import FilterType, Metadata
+from taskorbit.models import Metadata
 from taskorbit.utils import evaluate_filters, validate_filters
 
 

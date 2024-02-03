@@ -1,4 +1,4 @@
-from taskorbit.types import TaskMessage
+from taskorbit.models import TaskMessage
 
 
 class Middleware:

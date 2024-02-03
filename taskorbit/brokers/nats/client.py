@@ -9,7 +9,7 @@ from ormsgpack import ormsgpack
 
 from taskorbit.brokers.nats.configuration import NatsConfiguration
 from taskorbit.dispatching.dispatcher import Dispatcher
-from taskorbit.types import TaskMessage, ServiceMessage
+from taskorbit.models import TaskMessage, ServiceMessage
 
 logger = logging.getLogger(__name__)
 
@@ -59,7 +59,7 @@ class NatsBroker:
 
         subscriber: JetStreamContext.PushSubscription = await self._builder_subscriber()
         async for msg in subscriber.messages:
-            print("New msg", not dp.queue.full, dp.queue)
+            print("New msg", not dp.queue.full, [task for task in dp.queue.keys()])
             if not dp.queue.full:
                 data: dict[str, Any] | int = ormsgpack.unpackb(msg.data)
 
@@ -67,18 +67,18 @@ class NatsBroker:
                     logger.warning(f"The message has an unknown format: {data}")
                 else:
                     fields_data = set(data.keys())
-                    try:
-                        if TaskMessage.validate_fields(fields_data):
-                            metadata: TaskMessage = TaskMessage(**data)
-                        elif ServiceMessage.validate_fields(fields_data):
-                            metadata: ServiceMessage = ServiceMessage(**data)
-                        else:
-                            raise TypeError(f"The message has an unknown format: {fields_data}")
+                    # try:
+                    if TaskMessage.validate_fields(fields_data):
+                        metadata: TaskMessage = TaskMessage(**data)
+                    elif ServiceMessage.validate_fields(fields_data):
+                        metadata: ServiceMessage = ServiceMessage(**data)
+                    else:
+                        raise TypeError(f"The message has an unknown format: {fields_data}")
 
-                        await dp.listen(metadata=metadata)
-                    except TypeError as exc:
-                        logger.error(f"TypeError: {exc.args[0]}")
-                    except Exception as exc:
-                        logger.error(f"Exception: {exc}")
+                    await dp.listen(metadata=metadata)
+                    # except TypeError as exc:
+                    #     logger.error(f"TypeError: {exc.args[0]}")
+                    # except Exception as exc:
+                    #     logger.error(f"Exception: {exc}")
 
                 await msg.ack()

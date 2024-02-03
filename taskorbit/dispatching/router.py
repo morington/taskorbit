@@ -1,6 +1,8 @@
 from typing import Optional, Type
 
-from taskorbit.types import FilterType, TaskMessage, HandlerType
+from taskorbit.dispatching.basehandler import HandlerType
+from taskorbit.filter import FilterType
+from taskorbit.models import TaskMessage
 from taskorbit.utils import validate_filters, evaluate_filters
 
 

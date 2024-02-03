@@ -1,6 +1,6 @@
 from dataclasses import dataclass, fields
 from enum import EnumType
-from typing import Optional
+from typing import Optional, Union
 
 from taskorbit.enums import Commands
 
@@ -41,3 +41,6 @@ class TaskMessage(Message):
 class ServiceMessage(BaseType):
     uuid: str
     command: Commands
+
+
+Metadata = Union[TaskMessage | ServiceMessage]

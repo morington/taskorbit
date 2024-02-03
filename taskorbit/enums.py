@@ -13,3 +13,8 @@ class Commands(StrEnum):
 class TaskStatus(StrEnum):
     RUNNING = "RUNNING"
     UNKNOWN = "UNKNOWN"
+
+
+class WorkerType(StrEnum):
+    class_type = "class_type"
+    function_type = "function_type"

@@ -4,7 +4,8 @@ from typing import Callable, Any
 
 from magic_filter import MagicFilter, AttrDict
 
-from taskorbit.types import FilterType, TaskMessage, BaseFilter, Message
+from taskorbit.filter import FilterType, BaseFilter
+from taskorbit.models import Message, TaskMessage
 
 
 async def evaluate_filters(filters: FilterType, metadata: TaskMessage) -> bool:

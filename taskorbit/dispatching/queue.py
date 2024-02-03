@@ -1,7 +1,8 @@
 import asyncio
 from typing import Optional
 
-from taskorbit.types import TaskStatus
+from taskorbit.enums import TaskStatus, WorkerType
+from taskorbit.utils import get_list_parameters
 
 
 class Queue(dict):
@@ -12,15 +13,18 @@ class Queue(dict):
 
         self.max_size = max_size
 
-    def __setitem__(self, key: str, value: asyncio.Task):
-        value.set_name(key)
-        super().__setitem__(key, value)
+    def __setitem__(self, key: str, value: tuple):
+        if not isinstance(value, tuple):
+            raise ValueError("Queue `value` must be `tuple`")
 
-    def pop(self, key, default=None):
-        print(f"Это функция очереди {self}")
-        s = super().pop(key, default)
-        print(f"Это функция очереди {self}")
-        return s
+        handler, type_handler, metadata = value
+        if type_handler == WorkerType.class_type:
+            asyncio.create_task(
+                handler.__call__(queue=self, **get_list_parameters(handler.__call__, metadata))
+            )
+        elif type_handler == WorkerType.function_type:
+            asyncio.create_task(handler(**get_list_parameters(handler, metadata)))
+        super().__setitem__(key, handler)
 
     @property
     def full(self) -> bool:
@@ -28,8 +32,8 @@ class Queue(dict):
 
     def close_task(self, uuid: str) -> None:
         if uuid in self:
-            task = self.pop(uuid)
-            task.cancel()
+            handler = self.pop(uuid)
+            handler.cancel(self)
 
     def get_status_task(self, uuid: str) -> TaskStatus:
         if uuid in self:

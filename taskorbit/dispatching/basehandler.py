@@ -1,9 +1,10 @@
 import asyncio
 import logging
 from abc import ABC, abstractmethod
-from typing import Callable, Awaitable, Optional
+from typing import Callable, Awaitable, Optional, Union
 
 from taskorbit.dispatching.queue import Queue
+from taskorbit.models import TaskMessage
 from taskorbit.timer import TimerManager
 
 logger = logging.getLogger(__name__)
@@ -36,9 +37,10 @@ class BaseHandler(ABC):
             else:
                 logger.debug("Closed!")
 
-    def __cancel(self, queue: Queue) -> None:
+    def cancel(self, queue: Queue) -> None:
         self.timer_manager.cancel_timers()
-        queue.pop(self.uuid)
+        if self.uuid in queue:
+            queue.pop(self.uuid)
 
     @abstractmethod
     async def handle(self, *args, **kwargs) -> None: ...
@@ -47,4 +49,7 @@ class BaseHandler(ABC):
         await self.timer_manager.start_timer(self.execution_timeout, self._execution)
         await self.timer_manager.start_timer(self.close_timeout, self._close)
         self.handle_task = asyncio.create_task(self.handle())
-        self.handle_task.add_done_callback(lambda future: self.__cancel(queue))
+        self.handle_task.add_done_callback(lambda future: self.cancel(queue))
+
+
+HandlerType = Union[BaseHandler, Callable[[TaskMessage], Awaitable[None]]]
