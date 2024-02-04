@@ -22,6 +22,11 @@ router = Router()
 
 
 class MyMiddleware(Middleware):
+    """
+    An example of a simple middleware is shown.
+    It allows processing incoming data before handler detection (middleware) and after detection (outer_middleware).
+    You can pass data to both init and call.
+    """
     def __init__(self, my_age: int):
         self.my_age = my_age
 
@@ -70,8 +75,9 @@ async def main():
 
     """
     I can send some data directly to the dispatcher.
-    I can use middleware to mutate my data.
+    I can use middleware to mutate the data.
     Here I use an internal middleware that will only execute if it finds a handler to process it.
+    Maybe the filters are currently not conveniently done, I will think about it in the future.
 
     I'll also initialize our router.
     """
