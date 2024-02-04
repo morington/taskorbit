@@ -13,7 +13,6 @@ from taskorbit.models import TaskMessage, ServiceMessage
 
 logger = logging.getLogger(__name__)
 
-
 class NatsBroker:
     jetstream: Optional[JetStreamContext]
 
@@ -85,3 +84,8 @@ class NatsBroker:
                         logger.error(f"Exception: {exc}")
 
                 await msg.ack()
+
+async def nats_broker(config: dict[str, str]| NatsConfiguration) -> NatsBroker:
+    broker = NatsBroker(config)
+    await broker.startup()
+    return broker
