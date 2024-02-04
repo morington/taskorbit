@@ -1,5 +1,5 @@
 <p align="center">
-    <img src="docs/assets/images/taskorbit" alt="taskorbit-logo" width="250" height="148" />
+    <img src="docs/assets/images/taskorbit.png" alt="taskorbit-logo" height="200" />
 </p>
 
 <h2 align="center">TaskOrbit: Effortless Tasking</h2>
