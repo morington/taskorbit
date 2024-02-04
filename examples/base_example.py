@@ -1,17 +1,18 @@
 import asyncio
 import uuid
+from typing import Callable, Any
 
 import structlog
 from magic_filter import F
 
-import setup_logger
+import config.setup_logger
 from taskorbit.dispatching.handler import BaseHandler
 from taskorbit.brokers.nats.client import nats_broker
 from taskorbit.dispatching.dispatcher import Dispatcher
 from taskorbit.dispatching.router import Router
 from taskorbit.enums import Commands
 from taskorbit.middlewares.middleware import Middleware
-from taskorbit.models import Metadata, TaskMessage
+from taskorbit.models import Metadata, Message
 
 logger = structlog.getLogger(__name__)
 
@@ -19,6 +20,14 @@ logger = structlog.getLogger(__name__)
 dp = Dispatcher(max_queue_size=3)
 # Use routers to expand your service more flexibly
 router = Router()
+
+
+class DatabasePoolSimulation:
+    def __enter__(self):
+        logger.debug("Connecting to the database--->")
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        logger.debug("<----Returning the session to the pool")
 
 
 class MyMiddleware(Middleware):
@@ -31,12 +40,17 @@ class MyMiddleware(Middleware):
     def __init__(self, my_age: int):
         self.my_age = my_age
 
-    async def __call__(self, metadata: Metadata) -> Metadata:
-        name = metadata.context_data.get("name", None)
-        if name:
-            metadata.context_data["name"] = f"{name} [{self.my_age} yo]"
+    async def __call__(self, handler: Callable, metadata: Message, data: dict[str, Any]) -> Any:
+        """
+        Implementation of a database connection simulation so that you can ensure that the context manager does not interrupt in middlewares.
+        """
+        with DatabasePoolSimulation():
+            logger.debug("Starting my middleware")
+            name = data.get("name", None)
+            if name:
+                data["name"] = f"{name} [{self.my_age} yo]"
 
-        return metadata
+            return await handler(metadata, data)
 
 
 async def main():
@@ -68,25 +82,27 @@ async def main():
     # Using service messages to work with tasks. In this example we will close our first task
     _uuid = uuid.uuid4().hex
     await broker.pub({"uuid": _uuid, "type_event": "TEST_CLASS", "data": {"some_data": 123}})
+    await broker.pub({"uuid": _uuid, "command": Commands.GET_STATUS})
     await broker.pub({"uuid": _uuid, "command": Commands.CLOSING})
+    await broker.pub({"uuid": _uuid, "command": Commands.GET_STATUS})
 
     # These tasks will execute, but the 4th task will wait for the others to execute, because we have specified in
     # the dispatcher no more than 3 processes at the same time.
     # The task is sent back to the broker and will return soon.
-    await broker.pub(
-        {
-            "uuid": uuid.uuid4().hex,
-            "type_event": "TEST_CLASS",
-            "data": {"some_data": 123},
-        }
-    )
-    await broker.pub(
-        {
-            "uuid": uuid.uuid4().hex,
-            "type_event": "TEST_FUNCTION",
-            "data": {"some_data": 123},
-        }
-    )
+    # await broker.pub(
+    #     {
+    #         "uuid": uuid.uuid4().hex,
+    #         "type_event": "TEST_CLASS",
+    #         "data": {"some_data": 123},
+    #     }
+    # )
+    # await broker.pub(
+    #     {
+    #         "uuid": uuid.uuid4().hex,
+    #         "type_event": "TEST_FUNCTION",
+    #         "data": {"some_data": 123},
+    #     }
+    # )
 
     """
     I can send some data directly to the dispatcher.
@@ -97,12 +113,13 @@ async def main():
     I'll also initialize our router.
     """
     dp["name"] = "Adam"
-    dp.outer_middleware.include(MyMiddleware(25), F.metadata.type_event == "TEST_FUNCTION")
+    dp.outer_middleware.include(MyMiddleware(25), F.metadata.type_event == "TEST_CLASS")
     dp.include_router(router)
 
     """
     Let's start our broker polling, enter our dispatcher into it
     """
+    logger.debug("Start...")
     await broker.include_dispatcher(dp)
 
 
@@ -113,7 +130,7 @@ class MyHandler(BaseHandler):
     It may be more convenient for someone to use classes to group stages of processing their business logic.
     """
 
-    def __init__(self, message: Metadata) -> None:
+    def __init__(self, metadata: Metadata) -> None:
         super().__init__()
         """
         :param uuid: str - Unique task id
@@ -126,7 +143,7 @@ class MyHandler(BaseHandler):
         :param on_close: Optional[Callable[[], Awaitable[None]]] = None - The callback triggered when the task
             timeout has expired closes the current task. By default it outputs a log.
         """
-        self.uuid = message.uuid
+        self.uuid = metadata.uuid
 
         # After 2 seconds, please display the log that you need to wait more
         self.execution_timeout = 2
@@ -137,20 +154,20 @@ class MyHandler(BaseHandler):
         """
         Simulation of business logic operation
         """
-        print(f"{name}, Run....")
+        logger.info(f"{name}, Run....")
         await asyncio.sleep(4)
-        print(f"{name}, Done!")
+        logger.info(f"{name}, Done!")
 
 
 @router.include_handler(F.metadata.type_event == "TEST_FUNCTION")
-async def handle_function(message: TaskMessage, name: str) -> None:
+async def handle_function(metadata: Message, name: str) -> None:
     """
     Easy function, we can still set timeouts and callbacks for them. This is done in the decorator.
     This is a simple variant of the handler.
 
     Simulation of business logic operation
     """
-    logger.debug(f"{name}, function-handler is complete!")
+    logger.info(f"{name}, function-handler is complete!")
 
 
 if __name__ == "__main__":
