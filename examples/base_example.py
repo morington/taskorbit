@@ -89,8 +89,10 @@ async def main():
     # These tasks will execute, but the 4th task will wait for the others to execute, because we have specified in
     # the dispatcher no more than 3 processes at the same time.
     # The task is sent back to the broker and will return soon.
+    # --> UPD: Service messages no longer load the queue. All service messages are executed out of queue.
     await broker.pub({"uuid": uuid.uuid4().hex, "type_event": "TEST_CLASS", "data": {"some_data": 123}})
     await broker.pub({"uuid": uuid.uuid4().hex, "type_event": "TEST_FUNCTION", "data": {"some_data": 123}})
+    await broker.pub({"uuid": uuid.uuid4().hex, "type_event": "TEST_CLASS", "data": {"some_data": 123}})
 
     """
     I can send some data directly to the dispatcher.
