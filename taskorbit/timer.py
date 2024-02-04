@@ -1,6 +1,9 @@
 import asyncio
+from logging import getLogger
 from typing import Optional, Callable, Awaitable
 
+
+logger = getLogger(__name__)
 
 class TimerManager:
     def __init__(self):
@@ -19,7 +22,7 @@ class TimerManager:
             return task
 
     def cancel_timers(self, *args):
-        print("Closing timers")
+        logger.debug("Closing timers")
         for timer in self.timers:
             timer.cancel()
         self.timers.clear()
