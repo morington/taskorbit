@@ -27,13 +27,14 @@ class MyMiddleware(Middleware):
     It allows processing incoming data before handler detection (middleware) and after detection (outer_middleware).
     You can pass data to both init and call.
     """
+
     def __init__(self, my_age: int):
         self.my_age = my_age
 
     async def __call__(self, metadata: Metadata) -> Metadata:
-        name = metadata.context_data.get('name', None)
+        name = metadata.context_data.get("name", None)
         if name:
-            metadata.context_data['name'] = f"{name} [{self.my_age} yo]"
+            metadata.context_data["name"] = f"{name} [{self.my_age} yo]"
 
         return metadata
 
@@ -52,12 +53,14 @@ async def main():
     #
     # await broker.startup()
 
-    broker = await nats_broker({
-        "url": "nats://localhost:4222",
-        "stream": "test_nats",
-        "subject": "test_nats.test",
-        "durable": "test_nats_durable",
-    })
+    broker = await nats_broker(
+        {
+            "url": "nats://localhost:4222",
+            "stream": "test_nats",
+            "subject": "test_nats.test",
+            "durable": "test_nats_durable",
+        }
+    )
 
     """
     To give you an example, I'll send some data to the broker so my handlers can process it
@@ -70,8 +73,20 @@ async def main():
     # These tasks will execute, but the 4th task will wait for the others to execute, because we have specified in
     # the dispatcher no more than 3 processes at the same time.
     # The task is sent back to the broker and will return soon.
-    await broker.pub({"uuid": uuid.uuid4().hex, "type_event": "TEST_CLASS", "data": {"some_data": 123}})
-    await broker.pub({"uuid": uuid.uuid4().hex, "type_event": "TEST_FUNCTION", "data": {"some_data": 123}})
+    await broker.pub(
+        {
+            "uuid": uuid.uuid4().hex,
+            "type_event": "TEST_CLASS",
+            "data": {"some_data": 123},
+        }
+    )
+    await broker.pub(
+        {
+            "uuid": uuid.uuid4().hex,
+            "type_event": "TEST_FUNCTION",
+            "data": {"some_data": 123},
+        }
+    )
 
     """
     I can send some data directly to the dispatcher.
@@ -81,7 +96,7 @@ async def main():
 
     I'll also initialize our router.
     """
-    dp['name'] = 'Adam'
+    dp["name"] = "Adam"
     dp.outer_middleware.include(MyMiddleware(25), F.metadata.type_event == "TEST_FUNCTION")
     dp.include_router(router)
 

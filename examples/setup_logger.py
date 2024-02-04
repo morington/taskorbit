@@ -32,9 +32,7 @@ class SetupLogger:
     def timestamper(self) -> structlog.processors.TimeStamper:
         return structlog.processors.TimeStamper(fmt="%Y-%m-%d %H:%M:%S")
 
-    def logger_detailed(
-        self, logger: logging.Logger, method_name: str, event_dict: EventDict
-    ) -> EventDict:
+    def logger_detailed(self, logger: logging.Logger, method_name: str, event_dict: EventDict) -> EventDict:
         filename: str = event_dict.pop("filename")
         func_name: str = event_dict.pop("func_name")
         lineno: str = event_dict.pop("lineno")
