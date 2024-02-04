@@ -1,9 +1,13 @@
-from typing import Optional, Type, Callable
+import logging
+from typing import Optional, Type, Callable, Any
 
 from taskorbit.dispatching.handler import HandlerType, Handler
 from taskorbit.filter import FilterType
-from taskorbit.models import TaskMessage
+from taskorbit.models import Message
 from taskorbit.utils import validate_filters, evaluate_filters
+
+
+logger = logging.getLogger(__name__)
 
 
 class Router:
@@ -13,29 +17,22 @@ class Router:
 
     def include_router(self, router: "Router", *filters: FilterType) -> None:
         if not isinstance(router, Router):
-            raise TypeError(
-                f"The router must be an instance of Router, but received {type(router).__name__}"
-            )
+            raise TypeError(f"The router must be an instance of Router, but received {type(router).__name__}")
 
         self.child_routers[router] = validate_filters(filters)
 
-    async def find_handler(self, metadata: TaskMessage) -> Optional[Type[HandlerType]]:
-        return await self.recursive_router_search(metadata)
-
-    async def recursive_router_search(
-        self, metadata: TaskMessage
-    ) -> Optional[Type[HandlerType]]:
+    async def find_handler(self, metadata: Message, data: dict[str, Any]) -> Optional[Type[HandlerType]]:
         for handler, handler_filters in self.handlers.items():
-            if await evaluate_filters(handler_filters, metadata):
+            if await evaluate_filters(filters=handler_filters, metadata=metadata, data=data):
                 return handler
 
         for child_router, router_filters in self.child_routers.items():
-            if await evaluate_filters(router_filters, metadata):
-                child_handler = await child_router.recursive_router_search(metadata)
+            if await evaluate_filters(filters=router_filters, metadata=metadata, data=data):
+                child_handler = await child_router.find_handler(metadata=metadata, data=data)
                 if child_handler:
                     return child_handler
 
-        return None
+        raise RuntimeError("Handler not found")
 
     def include_class_handler(self, *filters: FilterType) -> Type[HandlerType]:
         def wrapper(cls: HandlerType):
@@ -45,9 +42,12 @@ class Router:
         return wrapper
 
     def include_handler(
-            self, *filters: FilterType,
-            execution_timeout: Optional[int] = None, on_execution_timeout: Optional[Callable] = None,
-            close_timeout: Optional[int] = None, on_close: Optional[Callable] = None
+        self,
+        *filters: FilterType,
+        execution_timeout: Optional[int] = None,
+        on_execution_timeout: Optional[Callable] = None,
+        close_timeout: Optional[int] = None,
+        on_close: Optional[Callable] = None,
     ) -> Callable:
         def wrapper(handler: Callable):
             cls = Handler()

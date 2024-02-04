@@ -14,22 +14,14 @@ class BaseType:
                 if field.type.validate_key(attr_sel):
                     setattr(self, field.name, field.type[attr_sel])
             elif not isinstance(attr_sel, field.type):
-                raise TypeError(
-                    f"Invalid nested type: {field.name}: {type(attr_sel).__name__} != {field.type.__name__}"
-                )
+                raise TypeError(f"Invalid nested type: {field.name}: {type(attr_sel).__name__} != {field.type.__name__}")
 
     @classmethod
     def validate_fields(cls, data: set[str]) -> bool:
         if not isinstance(data, set):
-            raise TypeError(
-                f"The `data` must be a set, but received {type(data).__name__}"
-            )
+            raise TypeError(f"The `data` must be a set, but received {type(data).__name__}")
 
-        return data == {
-            field.name
-            for field in fields(cls)
-            if field.default is not None or field.name in data
-        }
+        return data == {field.name for field in fields(cls) if field.default is not None or field.name in data}
 
 
 @dataclass
@@ -40,14 +32,9 @@ class Message(BaseType):
 
 
 @dataclass
-class TaskMessage(Message):
-    context_data: Optional[dict] = None
-
-
-@dataclass
 class ServiceMessage(BaseType):
     uuid: str
     command: Commands
 
 
-Metadata = Union[TaskMessage | ServiceMessage]
+Metadata = Union[Message | ServiceMessage]

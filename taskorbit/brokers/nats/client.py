@@ -9,9 +9,10 @@ from ormsgpack import ormsgpack
 
 from taskorbit.brokers.nats.configuration import NatsConfiguration
 from taskorbit.dispatching.dispatcher import Dispatcher
-from taskorbit.models import TaskMessage, ServiceMessage
+from taskorbit.models import Message, ServiceMessage
 
 logger = logging.getLogger(__name__)
+
 
 class NatsBroker:
     jetstream: Optional[JetStreamContext]
@@ -28,7 +29,9 @@ class NatsBroker:
 
     async def pub(self, data: dict[str, Any]):
         await self.jetstream.publish(
-            stream=self.config.stream, subject=self.config.subject, payload=ormsgpack.packb(data)
+            stream=self.config.stream,
+            subject=self.config.subject,
+            payload=ormsgpack.packb(data),
         )
 
     async def _get_subscriber(self) -> JetStreamContext.PushSubscription:
@@ -39,9 +42,7 @@ class NatsBroker:
         )
 
     async def _creating_stream(self) -> None:
-        await self.jetstream.add_stream(
-            name=self.config.stream, subjects=[self.config.subject]
-        )
+        await self.jetstream.add_stream(name=self.config.stream, subjects=[self.config.subject])
 
     async def _builder_subscriber(self) -> JetStreamContext.PushSubscription:
         if self.jetstream is None:
@@ -55,40 +56,68 @@ class NatsBroker:
 
     async def include_dispatcher(self, dp: Dispatcher) -> None:
         if not isinstance(dp, Dispatcher):
-            raise TypeError(
-                f"The `middleware` must be an instance of Middleware, but received {type(dp).__name__}"
-            )
+            raise TypeError(f"The `middleware` must be an instance of Middleware, but received {type(dp).__name__}")
 
         if self.jetstream is None:
             await self.startup()
 
         subscriber: JetStreamContext.PushSubscription = await self._builder_subscriber()
-        async for msg in subscriber.messages:
-            print("New msg", not dp.queue.full, [task for task in dp.queue.keys()])
-            if not dp.queue.full:
-                data: dict[str, Any] | int = ormsgpack.unpackb(msg.data)
+        # async for msg in subscriber.messages:
+        #     logger.debug(f"New msg! Is the queue full? - {not dp.queue.full, [task for task in dp.queue.keys()]}")
+        #     if not dp.queue.full:
+        #         data: dict[str, Any] | int = ormsgpack.unpackb(msg.data)
+        #
+        #         if isinstance(data, int):
+        #             logger.warning(f"The message has an unknown format: {data}")
+        #         else:
+        #             fields_data = set(data.keys())
+        #             try:
+        #                 if Message.validate_fields(fields_data):
+        #                     metadata: Message = Message(**data)
+        #                 elif ServiceMessage.validate_fields(fields_data):
+        #                     metadata: ServiceMessage = ServiceMessage(**data)
+        #                 else:
+        #                     raise TypeError(f"The message has an unknown format: {fields_data}")
+        #
+        #                 await dp.listen(metadata=metadata)
+        #             except TypeError as exc:
+        #                 logger.error(f"TypeError: {exc}")
+        #
+        #             await msg.ack()
 
-                if isinstance(data, int):
-                    logger.warning(f"The message has an unknown format: {data}")
-                else:
-                    fields_data = set(data.keys())
+        async for msg in subscriber.messages:
+            logger.debug(f"New msg! Is the queue full? - {dp.queue.full}; {len(dp.queue)}")
+            data: dict[str, Any] | int = ormsgpack.unpackb(msg.data)
+
+            if isinstance(data, int):
+                logger.warning(f"The message has an unknown format: {data}")
+            else:
+                fields_data = set(data.keys())
+                is_service_message = ServiceMessage.validate_fields(fields_data)
+
+                if is_service_message:
                     try:
-                        if TaskMessage.validate_fields(fields_data):
-                            metadata: TaskMessage = TaskMessage(**data)
-                        elif ServiceMessage.validate_fields(fields_data):
-                            metadata: ServiceMessage = ServiceMessage(**data)
+                        metadata: ServiceMessage = ServiceMessage(**data)
+                        await dp.listen(metadata=metadata)
+                    except TypeError as exc:
+                        logger.error(f"TypeError: {exc}")
+                    await msg.ack()
+                    continue
+
+                if not dp.queue.full:
+                    try:
+                        if Message.validate_fields(fields_data):
+                            metadata: Message = Message(**data)
                         else:
-                            raise TypeError(
-                                f"The message has an unknown format: {fields_data}"
-                            )
+                            raise TypeError(f"The message has an unknown format: {fields_data}")
 
                         await dp.listen(metadata=metadata)
                     except TypeError as exc:
-                        logger.error(f"TypeError: {exc.args[0]}")
-                    except Exception as exc:
-                        logger.error(f"Exception: {exc}")
+                        logger.error(f"TypeError: {exc}")
 
-                await msg.ack()
+                    await msg.ack()
+                else:
+                    logger.debug("Queue is full, skipping message acknowledgment.")
 
 
 async def nats_broker(config: dict[str, str] | NatsConfiguration) -> NatsBroker:

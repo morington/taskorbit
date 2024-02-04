@@ -3,12 +3,12 @@ from typing import Union
 
 from magic_filter import MagicFilter
 
-from taskorbit.models import TaskMessage
+from taskorbit.models import Message
 
 
 class BaseFilter(ABC):
     @abstractmethod
-    async def __call__(self, metadata: TaskMessage) -> bool: ...
+    async def __call__(self, metadata: Message) -> bool: ...
 
 
 FilterType = Union[MagicFilter, BaseFilter, bool, tuple]

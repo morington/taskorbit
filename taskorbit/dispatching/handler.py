@@ -4,7 +4,6 @@ from abc import ABC, abstractmethod
 from typing import Callable, Awaitable, Optional, Union
 
 from taskorbit.dispatching.queue import Queue
-from taskorbit.models import TaskMessage
 from taskorbit.timer import TimerManager
 
 logger = logging.getLogger(__name__)
@@ -12,6 +11,7 @@ logger = logging.getLogger(__name__)
 
 class BaseHandler(ABC):
     def __init__(self) -> None:
+        self.__task = None
         self._timer_manager = TimerManager()
 
         self.uuid: Optional[str] = None
@@ -28,28 +28,31 @@ class BaseHandler(ABC):
         else:
             logger.debug(f"Please wait, the task-{self.uuid} is still in progress...")
 
-    async def _close(self) -> None:
-        self._timer_manager.cancel_timers()
-        if self.handle_task is not None:
-            self.handle_task.cancel()
-            if self.on_close is not None:
-                self.on_close()
-            else:
-                logger.debug("Closed!")
+    async def _close(self, *args, **kwargs) -> None:
+        logger.debug("The timeout has expired and the task is being closed...")
+        if self.__task is not None:
+            self.__task.cancel()
+        else:
+            logger.warning("Closing via timeout was incorrect. The task does not exist!")
+            self.cancel(...)
 
-    def cancel(self, queue: Queue) -> None:
+    def cancel(self, _) -> None:
         self._timer_manager.cancel_timers()
-        if self.uuid in queue:
-            queue.pop(self.uuid)
+        logger.debug("Cancelled")
 
     @abstractmethod
     async def handle(self, *args, **kwargs) -> None: ...
 
-    async def __call__(self, queue: Queue, **kwargs) -> None:
-        await self._timer_manager.start_timer(self.execution_timeout, self._execution)
-        await self._timer_manager.start_timer(self.close_timeout, self._close)
-        self.handle_task = asyncio.create_task(self.handle(**kwargs))
-        self.handle_task.add_done_callback(lambda future: self.cancel(queue))
+    async def __call__(self, **kwargs) -> None:
+        try:
+            self.__task = asyncio.create_task(self.handle(**kwargs))
+            self.__task.add_done_callback(self.cancel)
+
+            await self._timer_manager.start_timer(self.execution_timeout, self._execution)
+            await self._timer_manager.start_timer(self.close_timeout, self._close)
+            await self.__task
+        except Exception as e:
+            logger.debug(f"An error occurred: {e.args[0]}")
 
 
 class Handler(BaseHandler):
@@ -57,4 +60,4 @@ class Handler(BaseHandler):
         raise NotImplementedError
 
 
-HandlerType = Union[BaseHandler, Handler, Callable[[TaskMessage], Awaitable[None]]]
+HandlerType = Union[BaseHandler, Handler, Callable]
