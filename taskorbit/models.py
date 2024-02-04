@@ -35,6 +35,7 @@ class BaseType:
 @dataclass
 class Message(BaseType):
     uuid: str
+    type_event: str
     data: Optional[dict] = None
 
 

@@ -1,6 +1,6 @@
-from typing import Optional, Type
+from typing import Optional, Type, Callable
 
-from taskorbit.dispatching.basehandler import HandlerType
+from taskorbit.dispatching.handler import HandlerType, Handler
 from taskorbit.filter import FilterType
 from taskorbit.models import TaskMessage
 from taskorbit.utils import validate_filters, evaluate_filters
@@ -37,11 +37,26 @@ class Router:
 
         return None
 
-    def include_class(self, *filters: FilterType) -> Type[HandlerType]:
+    def include_class_handler(self, *filters: FilterType) -> Type[HandlerType]:
         def wrapper(cls: HandlerType):
             self.handlers[cls] = validate_filters(filters)
             return cls
 
         return wrapper
 
-    def include_handler(self, *filters: FilterType) -> None: ...
+    def include_handler(
+            self, *filters: FilterType,
+            execution_timeout: Optional[int] = None, on_execution_timeout: Optional[Callable] = None,
+            close_timeout: Optional[int] = None, on_close: Optional[Callable] = None
+    ) -> Callable:
+        def wrapper(handler: Callable):
+            cls = Handler()
+            cls.execution_timeout = execution_timeout
+            cls.on_execution_timeout = on_execution_timeout
+            cls.close_timeout = close_timeout
+            cls.on_close = on_close
+            cls.handle = handler
+            self.handlers[cls] = validate_filters(filters)
+            return handler
+
+        return wrapper

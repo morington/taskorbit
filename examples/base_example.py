@@ -1,67 +1,135 @@
 import asyncio
 import uuid
 
-import ormsgpack
+import structlog
+from magic_filter import F
 
 import setup_logger
-from taskorbit.dispatching.basehandler import BaseHandler
-from taskorbit.brokers.nats.client import NatsBroker
+from taskorbit.dispatching.handler import BaseHandler
+from taskorbit.brokers.nats.client import nats_broker
 from taskorbit.dispatching.dispatcher import Dispatcher
+from taskorbit.dispatching.router import Router
 from taskorbit.enums import Commands
-from taskorbit.models import Metadata
+from taskorbit.middlewares.middleware import Middleware
+from taskorbit.models import Metadata, TaskMessage
 
-dp = Dispatcher(3)
+logger = structlog.getLogger(__name__)
+
+# Please create a dispatcher with 3 maximum tasks at the same time
+dp = Dispatcher(max_queue_size=3)
+# Use routers to expand your service more flexibly
+router = Router()
+
+
+class MyMiddleware(Middleware):
+    def __init__(self, my_age: int):
+        self.my_age = my_age
+
+    async def __call__(self, metadata: Metadata) -> Metadata:
+        name = metadata.context_data.get('name', None)
+        if name:
+            metadata.context_data['name'] = f"{name} [{self.my_age} yo]"
+
+        return metadata
 
 
 async def main():
-    # Загружаем конфигурацию.
-    broker = NatsBroker(
-        {
-            "url": "nats://localhost:4222",
-            "stream": "test_nats",
-            "subject": "test_nats.test",
-            "durable": "test_nats_durable",
-        }
-    )
+    """
+    We can either explicitly go through the broker configuration steps,
+    or we can use lazy fetching via the `nats_broker` function
+    """
+    # broker = NatsBroker({
+    #         "url": "nats://localhost:4222",
+    #         "stream": "test_nats",
+    #         "subject": "test_nats.test",
+    #         "durable": "test_nats_durable",
+    # })
+    #
+    # await broker.startup()
 
-    # Для публикации сообщений реализуем подключение.
-    await broker.startup()
+    broker = await nats_broker({
+        "url": "nats://localhost:4222",
+        "stream": "test_nats",
+        "subject": "test_nats.test",
+        "durable": "test_nats_durable",
+    })
 
-    # Тестовые сообщения в стрим NATS
-    async def pub(data):
-        await broker.jetstream.publish(
-            stream="test_nats", subject="test_nats.test", payload=ormsgpack.packb(data)
-        )
-
+    """
+    To give you an example, I'll send some data to the broker so my handlers can process it
+    """
+    # Using service messages to work with tasks. In this example we will close our first task
     _uuid = uuid.uuid4().hex
-    await pub({"uuid": _uuid, "data": {"chat_id": 123}})
+    await broker.pub({"uuid": _uuid, "type_event": "TEST_CLASS", "data": {"some_data": 123}})
+    await broker.pub({"uuid": _uuid, "command": Commands.CLOSING})
 
-    await pub({"uuid": uuid.uuid4().hex, "data": {"chat_id": 123}})
+    # These tasks will execute, but the 4th task will wait for the others to execute, because we have specified in
+    # the dispatcher no more than 3 processes at the same time.
+    # The task is sent back to the broker and will return soon.
+    await broker.pub({"uuid": uuid.uuid4().hex, "type_event": "TEST_CLASS", "data": {"some_data": 123}})
+    await broker.pub({"uuid": uuid.uuid4().hex, "type_event": "TEST_FUNCTION", "data": {"some_data": 123}})
 
-    await pub({"uuid": _uuid, "command": Commands.CLOSING})
+    """
+    I can send some data directly to the dispatcher.
+    I can use middleware to mutate my data.
+    Here I use an internal middleware that will only execute if it finds a handler to process it.
 
-    # Эта задача не отправится сразу в обработку, так как мы выставили 3 максимальных процесса в диспетчере.
-    # На текущий момент сервисные сообщения входят в размер очереди.
-    await pub({"uuid": uuid.uuid4().hex, "data": {"chat_id": 123}})
+    I'll also initialize our router.
+    """
+    dp['name'] = 'Adam'
+    dp.outer_middleware.include(MyMiddleware(25), F.metadata.type_event == "TEST_FUNCTION")
+    dp.include_router(router)
 
-    # Подключаем поллинг на наш диспетчер
+    """
+    Let's start our broker polling, enter our dispatcher into it
+    """
     await broker.include_dispatcher(dp)
 
 
-# Наш простой воркер в виде класса.
-@dp.include_class(True)
+@dp.include_class_handler(F.metadata.type_event == "TEST_CLASS")
 class MyHandler(BaseHandler):
+    """
+    This is the first option for creating a handler through a class.
+    It may be more convenient for someone to use classes to group stages of processing their business logic.
+    """
+
     def __init__(self, message: Metadata) -> None:
         super().__init__()
+        """
+        :param uuid: str - Unique task id
+        :param execution_timeout: Optional[int] = None - Timeout for waiting.
+            After which the `on_execution_timeout` callback is executed. By default, just the log is output.
+        :param on_execution_timeout: Optional[Callable[[], Awaitable[None]]] = None - Callback triggered after timeout
+            time expires
+        :param close_timeout: Optional[int] = None - Timeout for closure.
+            After this time expires, the `on_close` callback is executed. By default, only the log is output.
+        :param on_close: Optional[Callable[[], Awaitable[None]]] = None - The callback triggered when the task
+            timeout has expired closes the current task. By default it outputs a log.
+        """
         self.uuid = message.uuid
+
+        # After 2 seconds, please display the log that you need to wait more
         self.execution_timeout = 2
+        # Please close the task if it runs for more than 7 seconds
         self.close_timeout = 7
 
-    # Реализация симуляции ожидания. Здесь наша бизнес-логика.
-    async def handle(self) -> None:
-        print("Run....")
+    async def handle(self, name: str) -> None:
+        """
+        Simulation of business logic operation
+        """
+        print(f"{name}, Run....")
         await asyncio.sleep(4)
-        print("Done!")
+        print(f"{name}, Done!")
+
+
+@router.include_handler(F.metadata.type_event == "TEST_FUNCTION")
+async def handle_function(message: TaskMessage, name: str) -> None:
+    """
+    Easy function, we can still set timeouts and callbacks for them. This is done in the decorator.
+    This is a simple variant of the handler.
+
+    Simulation of business logic operation
+    """
+    logger.debug(f"{name}, function-handler is complete!")
 
 
 if __name__ == "__main__":

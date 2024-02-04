@@ -1,8 +1,12 @@
+import logging
 import asyncio
 from typing import Optional
 
-from taskorbit.enums import TaskStatus, WorkerType
+from taskorbit.enums import TaskStatus
 from taskorbit.utils import get_list_parameters
+
+
+logger = logging.getLogger(__name__)
 
 
 class Queue(dict):
@@ -18,14 +22,9 @@ class Queue(dict):
             raise ValueError("Queue `value` must be `tuple`")
 
         handler, type_handler, metadata = value
-        if type_handler == WorkerType.class_type:
-            asyncio.create_task(
-                handler.__call__(
-                    queue=self, **get_list_parameters(handler.__call__, metadata)
-                )
-            )
-        elif type_handler == WorkerType.function_type:
-            asyncio.create_task(handler(**get_list_parameters(handler, metadata)))
+        fields_cls: dict = get_list_parameters(handler.__call__, metadata)
+        fields_handle: dict = get_list_parameters(handler.handle, metadata)
+        asyncio.create_task(handler.__call__(queue=self, **{**fields_cls, **fields_handle}))
         super().__setitem__(key, handler)
 
     @property

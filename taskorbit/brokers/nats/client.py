@@ -26,6 +26,11 @@ class NatsBroker:
         nats_connect: Client = await nats.connect(self.config.url)
         self.jetstream: JetStreamContext = nats_connect.jetstream()
 
+    async def pub(self, data: dict[str, Any]):
+        await self.jetstream.publish(
+            stream=self.config.stream, subject=self.config.subject, payload=ormsgpack.packb(data)
+        )
+
     async def _get_subscriber(self) -> JetStreamContext.PushSubscription:
         return await self.jetstream.subscribe(
             stream=self.config.stream,
@@ -85,7 +90,8 @@ class NatsBroker:
 
                 await msg.ack()
 
-async def nats_broker(config: dict[str, str]| NatsConfiguration) -> NatsBroker:
+
+async def nats_broker(config: dict[str, str] | NatsConfiguration) -> NatsBroker:
     broker = NatsBroker(config)
     await broker.startup()
     return broker

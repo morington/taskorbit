@@ -3,7 +3,7 @@ import asyncio
 import logging
 from typing import Optional, Type
 
-from taskorbit.dispatching.basehandler import HandlerType
+from taskorbit.dispatching.handler import HandlerType
 from taskorbit.dispatching.queue import Queue
 from taskorbit.dispatching.router import Router
 from taskorbit.enums import Commands, TaskStatus, WorkerType

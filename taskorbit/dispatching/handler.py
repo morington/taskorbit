@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 class BaseHandler(ABC):
     def __init__(self) -> None:
-        self.timer_manager = TimerManager()
+        self._timer_manager = TimerManager()
 
         self.uuid: Optional[str] = None
 
@@ -29,7 +29,7 @@ class BaseHandler(ABC):
             logger.debug(f"Please wait, the task-{self.uuid} is still in progress...")
 
     async def _close(self) -> None:
-        self.timer_manager.cancel_timers()
+        self._timer_manager.cancel_timers()
         if self.handle_task is not None:
             self.handle_task.cancel()
             if self.on_close is not None:
@@ -38,18 +38,23 @@ class BaseHandler(ABC):
                 logger.debug("Closed!")
 
     def cancel(self, queue: Queue) -> None:
-        self.timer_manager.cancel_timers()
+        self._timer_manager.cancel_timers()
         if self.uuid in queue:
             queue.pop(self.uuid)
 
     @abstractmethod
     async def handle(self, *args, **kwargs) -> None: ...
 
-    async def __call__(self, queue: Queue, *args, **kwargs) -> None:
-        await self.timer_manager.start_timer(self.execution_timeout, self._execution)
-        await self.timer_manager.start_timer(self.close_timeout, self._close)
-        self.handle_task = asyncio.create_task(self.handle())
+    async def __call__(self, queue: Queue, **kwargs) -> None:
+        await self._timer_manager.start_timer(self.execution_timeout, self._execution)
+        await self._timer_manager.start_timer(self.close_timeout, self._close)
+        self.handle_task = asyncio.create_task(self.handle(**kwargs))
         self.handle_task.add_done_callback(lambda future: self.cancel(queue))
 
 
-HandlerType = Union[BaseHandler, Callable[[TaskMessage], Awaitable[None]]]
+class Handler(BaseHandler):
+    async def handle(self, *args, **kwargs) -> None:
+        raise NotImplementedError
+
+
+HandlerType = Union[BaseHandler, Handler, Callable[[TaskMessage], Awaitable[None]]]
