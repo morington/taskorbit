@@ -1,0 +1,51 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "taskorbit"
+description = 'Asynchronous framework for managing asynchronous execution of independent tasks'
+readme = "README.rst"
+requires-python = ">=3.10"
+license = "MIT"
+authors = [
+    { name = "Adam Morington", email = "morington.mail@gmail.com" },
+]
+keywords = [
+    "nats",
+    "task-manager",
+    "queue",
+    "message brokers",
+    "framework",
+    "wrapper",
+    "asyncio",
+]
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Development Status :: 3 - Alpha",
+    "Framework :: AsyncIO",
+    "Typing :: Typed",
+    "Intended Audience :: Developers",
+    "Intended Audience :: System Administrators",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: Implementation :: PyPy",
+    "Topic :: Software Development :: Libraries :: Application Frameworks",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: System :: Distributed Computing",
+    "Topic :: Utilities"
+]
+dependencies = [
+    "magic-filter>=1.0.12,<1.1",
+    "nats-py>=2.6.0",
+    "ormsgpack>=1.4.2"
+]
+dynamic = ["version"]
+
+[tool.hatch.version]
+path = "taskorbit/__meta__.py"
+
+[project.urls]
+Documentation = "https://morington.github.io/taskorbit/"
+Repository = "https://github.com/morington/taskorbit/"
+"Telegram community"= "https://t.me/+0ih_O4_AkhlkMThi"
