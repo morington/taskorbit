@@ -19,7 +19,7 @@ class Dispatcher(Router):
     def __init__(self, max_queue_size: int) -> None:
         super().__init__()
         self.middleware = MiddlewareManager()
-        self.outer_middleware = MiddlewareManager()
+        self.inner_middleware = MiddlewareManager()
         self.queue: Queue[str, asyncio.Task] = Queue(max_queue_size)
         self.context_data: dict = {}
 
@@ -74,7 +74,7 @@ class Dispatcher(Router):
 
             return await handler(**{**fields_cls, **fields_handle})
 
-        call_processing: partial | Callable = await self.outer_middleware.middleware_processing(handler=_handler_processing, metadata=metadata)
+        call_processing: partial | Callable = await self.inner_middleware.middleware_processing(handler=_handler_processing, metadata=metadata)
 
         try:
             return await call_processing(metadata=metadata, data=data)

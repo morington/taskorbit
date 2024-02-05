@@ -103,7 +103,7 @@ async def main():
     I'll also initialize our router.
     """
     dp["name"] = "Adam"
-    dp.outer_middleware.include(MyMiddleware(25), F.metadata.type_event == "TEST_CLASS")
+    dp.inner_middleware.include(MyMiddleware(25), F.metadata.type_event == "TEST_CLASS")
     dp.include_router(router)
 
     """
