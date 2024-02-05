@@ -101,7 +101,7 @@ class ServiceMessage(BaseType):
 
 # Sending messages
 
-You can send messages to stream using the pub method:
+You can send messages to a thread using the pub method. Generate a unique UUID for each message to handle each shuffle:
 
 ```python
 # Data messages for tasks:
