@@ -37,4 +37,4 @@ class ServiceMessage(BaseType):
     command: Commands
 
 
-Metadata = Union[Message | ServiceMessage]
+Metadata = Union[Message, ServiceMessage]
