@@ -1,6 +1,7 @@
 from enum import Enum
 
 
+#  Support 3.10
 class StrEnum(str, Enum):
     pass
 

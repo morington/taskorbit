@@ -1,6 +1,6 @@
 import logging
 from functools import partial
-from typing import Callable, Optional, Awaitable
+from typing import Callable
 
 from taskorbit.filter import FilterType
 from taskorbit.middlewares.middleware import Middleware

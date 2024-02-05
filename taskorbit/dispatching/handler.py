@@ -3,7 +3,6 @@ import logging
 from abc import ABC, abstractmethod
 from typing import Callable, Awaitable, Optional, Union
 
-from taskorbit.dispatching.queue import Queue
 from taskorbit.timer import TimerManager
 
 logger = logging.getLogger(__name__)

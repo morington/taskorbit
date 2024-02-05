@@ -1,12 +1,11 @@
 import inspect
 import logging
-from dataclasses import asdict
 from typing import Callable, Any
 
 from magic_filter import MagicFilter, AttrDict
 
 from taskorbit.filter import FilterType, BaseFilter
-from taskorbit.models import Message, Message
+from taskorbit.models import Message
 
 
 logger = logging.getLogger(__name__)

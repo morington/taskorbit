@@ -1,7 +1,7 @@
 import abc
 import asyncio
 import logging
-from typing import Type, Any, Callable, Optional
+from typing import Type, Any, Callable
 from functools import partial
 
 from taskorbit.dispatching.handler import HandlerType
@@ -9,7 +9,6 @@ from taskorbit.dispatching.queue import Queue
 from taskorbit.dispatching.router import Router
 from taskorbit.enums import Commands, TaskStatus
 from taskorbit.middlewares.manager import MiddlewareManager
-from taskorbit.middlewares.middleware import DefaultMiddleware
 from taskorbit.models import ServiceMessage, Metadata, Message
 from taskorbit.utils import get_list_parameters
 
@@ -23,8 +22,6 @@ class Dispatcher(Router):
         self.outer_middleware = MiddlewareManager()
         self.queue: Queue[str, asyncio.Task] = Queue(max_queue_size)
         self.context_data: dict = {}
-
-        self.middleware.include(DefaultMiddleware())
 
     def __setitem__(self, key, value):
         self.context_data[key] = value

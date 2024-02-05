@@ -5,7 +5,7 @@ from typing import Callable, Any
 import structlog
 from magic_filter import F
 
-import config.setup_logger
+import setup_logger
 from taskorbit.dispatching.handler import BaseHandler
 from taskorbit.brokers.nats.client import nats_broker
 from taskorbit.dispatching.dispatcher import Dispatcher
