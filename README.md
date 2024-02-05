@@ -115,10 +115,10 @@ The framework also supports outer-middlewares and inner-middlewares. Middlewares
 
 <b>Currently, the Filters classes are disabled. Under testing.</b>
 
-<h3>Please don't forget to refer to [EXAMPLES](https://github.com/morington/taskorbit/tree/main/examples) in the repository structure for help with the framework. Stable examples that have been tested are posted there.</4>
+Please don't forget to refer to [EXAMPLES](https://github.com/morington/taskorbit/tree/main/examples) in the repository structure for help with the framework. Stable examples that have been tested are posted there.
 
 # License:
 
-<b>AsyncQueueX is distributed under the MIT license. Details can be found in the [LICENSE](https://raw.githubusercontent.com/morington/taskorbit/main/LICENSE) file.</b>
+AsyncQueueX is distributed under the MIT license. Details can be found in the [LICENSE](https://raw.githubusercontent.com/morington/taskorbit/main/LICENSE) file.
 
 
