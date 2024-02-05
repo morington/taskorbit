@@ -42,7 +42,7 @@ async def main():
     Of course, in a natural environment IDs are taken from the database and also sent to NATS JetStream.
     """
     text = "Hey, buddy! This is a newsletter on taskorbit!"
-    for user_id in [5892974145, 6550251211, 6519908237]:
+    for user_id in [589294145, 655021211, 651998237]:
         await broker.pub({"uuid": uuid.uuid4().hex, "type_event": "SENDING", "data": {"chat_id": user_id, "text": text}})
 
     """
