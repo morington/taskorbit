@@ -6,7 +6,7 @@ from functools import partial
 
 from taskorbit.dispatching.handler import HandlerType
 from taskorbit.dispatching.queue import Queue
-from taskorbit.dispatching.router import Router
+from taskorbit.dispatching.router import Router, find_handler
 from taskorbit.enums import Commands, TaskStatus
 from taskorbit.middlewares.manager import MiddlewareManager
 from taskorbit.models import ServiceMessage, Metadata, Message
@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 class Dispatcher(Router):
     def __init__(self, max_queue_size: int) -> None:
-        super().__init__()
+        super().__init__(name='DISPATCHER')
         self.middleware = MiddlewareManager()
         self.inner_middleware = MiddlewareManager()
         self.queue: Queue[str, asyncio.Task] = Queue(max_queue_size)
@@ -64,7 +64,12 @@ class Dispatcher(Router):
             logger.error(f"{e.args[0]}")
 
     async def _message_processing(self, metadata: Message, data: dict[str, Any]) -> Any:
-        handler: Type[HandlerType] = await self.find_handler(metadata=metadata, data=data)
+        handler: Type[HandlerType] = await find_handler(
+            handlers=self.handlers,
+            router=self,
+            metadata=metadata,
+            data=data
+        )
 
         async def _handler_processing(metadata: Message, data: dict[str, Any]) -> Any:
             nonlocal handler

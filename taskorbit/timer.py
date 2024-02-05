@@ -1,7 +1,6 @@
 import asyncio
 from logging import getLogger
-from typing import Optional, Callable, Awaitable
-
+from typing import Optional, Callable, Awaitable, Any
 
 logger = getLogger(__name__)
 
@@ -10,7 +9,7 @@ class TimerManager:
     def __init__(self):
         self.timers: list[asyncio.Task] = []
 
-    async def start_timer(self, timeout: Optional[int], callback: Callable[[...], Awaitable[None]], **kwargs) -> Optional[asyncio.Task]:
+    async def start_timer(self, timeout: Optional[int], callback: Callable[..., Awaitable[None]], **kwargs) -> Optional[asyncio.Task]:
         async def timer() -> None:
             await asyncio.sleep(timeout)
             await callback(**kwargs)

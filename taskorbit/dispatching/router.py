@@ -1,4 +1,5 @@
 import logging
+import uuid
 from typing import Optional, Type, Callable, Any
 
 from taskorbit.dispatching.handler import HandlerType, Handler
@@ -11,28 +12,22 @@ logger = logging.getLogger(__name__)
 
 
 class Router:
-    def __init__(self) -> None:
+    def __init__(self, name: str = uuid.uuid4().hex) -> None:
+        self.name = name
         self.child_routers: dict["Router", tuple[FilterType, ...]] = {}
         self.handlers: dict[Type[HandlerType], tuple[FilterType, ...]] = {}
+
+    def __str__(self) -> str:
+        return f"<Router:{self.name}>"
+
+    def __repr__(self) -> str:
+        return self.__str__()
 
     def include_router(self, router: "Router", *filters: FilterType) -> None:
         if not isinstance(router, Router):
             raise TypeError(f"The router must be an instance of Router, but received {type(router).__name__}")
 
         self.child_routers[router] = validate_filters(filters)
-
-    async def find_handler(self, metadata: Message, data: dict[str, Any]) -> Optional[Type[HandlerType]]:
-        for handler, handler_filters in self.handlers.items():
-            if await evaluate_filters(filters=handler_filters, metadata=metadata, data=data):
-                return handler
-
-        for child_router, router_filters in self.child_routers.items():
-            if await evaluate_filters(filters=router_filters, metadata=metadata, data=data):
-                child_handler = await child_router.find_handler(metadata=metadata, data=data)
-                if child_handler:
-                    return child_handler
-
-        raise RuntimeError("Handler not found")
 
     def include_class_handler(self, *filters: FilterType) -> Type[HandlerType]:
         def wrapper(cls: HandlerType):
@@ -51,6 +46,7 @@ class Router:
     ) -> Callable:
         def wrapper(handler: Callable):
             cls = Handler()
+            cls.name = handler.__name__
             cls.execution_timeout = execution_timeout
             cls.on_execution_timeout = on_execution_timeout
             cls.close_timeout = close_timeout
@@ -60,3 +56,24 @@ class Router:
             return handler
 
         return wrapper
+
+
+async def find_handler(
+        handlers: dict[Type[HandlerType], tuple[FilterType, ...]],
+        router: Router,
+        metadata: Message,
+        data: dict[str, Any],
+        _child: bool = False
+) -> Optional[Type[HandlerType]]:
+    for handler, handler_filters in handlers.items():
+        if await evaluate_filters(filters=handler_filters, metadata=metadata, data=data):
+            return handler
+
+    for child_router, router_filters in router.child_routers.items():
+        if await evaluate_filters(filters=router_filters, metadata=metadata, data=data):
+            child_handler = await find_handler(handlers=child_router.handlers, router=child_router, metadata=metadata, data=data, _child=True)
+            if child_handler:
+                return child_handler
+
+    if not _child:
+        raise RuntimeError("Handler not found")

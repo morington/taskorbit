@@ -1,6 +1,7 @@
 import asyncio
 import inspect
 import logging
+import uuid
 from abc import ABC, abstractmethod
 from types import NoneType
 from typing import Callable, Awaitable, Optional, Union, Any
@@ -12,6 +13,8 @@ logger = logging.getLogger(__name__)
 
 class BaseHandler(ABC):
     def __init__(self) -> None:
+        self.name = "unknown"
+
         self.__task = None
         self._timer_manager = TimerManager()
 
@@ -30,6 +33,12 @@ class BaseHandler(ABC):
             inspect.isclass(self.on_close)
         ):
             raise TypeError("The callback must be either a function or NoneType")
+
+    def __str__(self) -> str:
+        return f"<Handler:{self.name}>"
+
+    def __repr__(self) -> str:
+        return self.__str__()
 
     async def _execution(self, **kwargs) -> None:
         if self.on_execution_timeout is not None:
