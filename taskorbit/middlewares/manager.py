@@ -18,7 +18,7 @@ class MiddlewareManager:
     async def middleware_processing(self, handler: Callable, metadata: Metadata) -> partial | Callable:
         for middleware, filters in self.middlewares.items():
             if await evaluate_filters(filters, metadata=metadata):
-                handler: partial = partial(middleware, handler=handler)
+                handler: partial = partial(middleware, handler)
 
         return handler
 
