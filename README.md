@@ -119,6 +119,6 @@ Please don't forget to refer to [EXAMPLES](https://github.com/morington/taskorbi
 
 # License:
 
-AsyncQueueX is distributed under the MIT license. Details can be found in the [LICENSE](https://raw.githubusercontent.com/morington/taskorbit/main/LICENSE) file.
+Taskorbit is distributed under the MIT license. Details can be found in the [LICENSE](https://raw.githubusercontent.com/morington/taskorbit/main/LICENSE) file.
 
 
