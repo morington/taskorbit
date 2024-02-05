@@ -55,9 +55,11 @@ class Dispatcher(Router):
                 logger.error(e.args[0])
 
     async def _metadata_processing(self, metadata: Metadata) -> None:
+        data = self.context_data.copy()
+
         try:
             call_processing: partial = await self.middleware.middleware_processing(handler=self._message_processing, metadata=metadata)
-            await call_processing(metadata=metadata, data=self.context_data)
+            await call_processing(metadata=metadata, data=data)
         except Exception as e:
             logger.error(f"{e.args[0]}")
 
@@ -71,8 +73,14 @@ class Dispatcher(Router):
 
             fields_cls: dict = get_list_parameters(handler.__call__, metadata=metadata, data=data)
             fields_handle: dict = get_list_parameters(handler.handle, metadata=metadata, data=data, is_handler=True)
+            fields_execution_callback: dict = get_list_parameters(handler.on_execution_timeout, metadata=metadata, data=data, is_handler=True)
+            fields_close_callback: dict = get_list_parameters(handler.on_close, metadata=metadata, data=data, is_handler=True)
 
-            return await handler(**{**fields_cls, **fields_handle})
+            return await handler(**{
+                    **fields_cls, **fields_handle,
+                    'fields_execution_callback': fields_execution_callback,
+                    'fields_close_callback': fields_close_callback
+            })
 
         call_processing: partial | Callable = await self.inner_middleware.middleware_processing(handler=_handler_processing, metadata=metadata)
 

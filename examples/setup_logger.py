@@ -13,9 +13,6 @@ JSONFORMAT_FORMATTER: str = "jsonformat_formatter"
 
 
 class SetupLogger:
-    def __init__(self) -> None:
-        self.web_url = "http://127.0.0.1:3325/addlog"
-
     def __str__(self) -> str:
         return f"<{__class__.__name__} dev:{sys.stderr.isatty()}>"
 

@@ -10,10 +10,10 @@ class TimerManager:
     def __init__(self):
         self.timers: list[asyncio.Task] = []
 
-    async def start_timer(self, timeout: Optional[int], callback: Callable[[], Awaitable[None]]) -> Optional[asyncio.Task]:
+    async def start_timer(self, timeout: Optional[int], callback: Callable[[...], Awaitable[None]], **kwargs) -> Optional[asyncio.Task]:
         async def timer() -> None:
             await asyncio.sleep(timeout)
-            await callback()
+            await callback(**kwargs)
 
         if timeout is not None:
             task = asyncio.create_task(timer())

@@ -3,7 +3,7 @@ import inspect
 import logging
 from abc import ABC, abstractmethod
 from types import NoneType
-from typing import Callable, Awaitable, Optional, Union
+from typing import Callable, Awaitable, Optional, Union, Any
 
 from taskorbit.timer import TimerManager
 
@@ -18,10 +18,10 @@ class BaseHandler(ABC):
         self.uuid: Optional[str] = None
 
         self.execution_timeout: Optional[int] = None
-        self.on_execution_timeout: Optional[Callable[[], Awaitable[None]]] = None
+        self.on_execution_timeout: Optional[Callable[[...], Awaitable[None]]] = None
 
         self.close_timeout: Optional[int] = None
-        self.on_close: Optional[Callable[[], Awaitable[None]]] = None
+        self.on_close: Optional[Callable[[...], Awaitable[None]]] = None
 
         if (
             not isinstance(self.on_execution_timeout, Callable | NoneType) or
@@ -31,15 +31,15 @@ class BaseHandler(ABC):
         ):
             raise TypeError("The callback must be either a function or NoneType")
 
-    async def _execution(self) -> None:
+    async def _execution(self, **kwargs) -> None:
         if self.on_execution_timeout is not None:
-            await self.on_execution_timeout()
+            await self.on_execution_timeout(**kwargs)
         else:
             logger.debug(f"Please wait, the task-{self.uuid} is still in progress...")
 
-    async def _close(self, *args, **kwargs) -> None:
+    async def _close(self, **kwargs) -> None:
         if self.on_close is not None:
-            await self.on_close()
+            await self.on_close(**kwargs)
 
         logger.debug("The timeout has expired and the task is being closed...")
         if self.__task is not None:
@@ -55,13 +55,13 @@ class BaseHandler(ABC):
     @abstractmethod
     async def handle(self, *args, **kwargs) -> None: ...
 
-    async def __call__(self, **kwargs) -> None:
+    async def __call__(self, fields_execution_callback: dict[str, Any], fields_close_callback: dict[str, Any], **kwargs) -> None:
         try:
             self.__task = asyncio.create_task(self.handle(**kwargs))
             self.__task.add_done_callback(self.cancel)
 
-            await self._timer_manager.start_timer(self.execution_timeout, self._execution)
-            await self._timer_manager.start_timer(self.close_timeout, self._close)
+            await self._timer_manager.start_timer(self.execution_timeout, self._execution, **fields_execution_callback)
+            await self._timer_manager.start_timer(self.close_timeout, self._close, **fields_close_callback)
             await self.__task
         except Exception as e:
             logger.debug(f"An error occurred: {e.args[0]}")
