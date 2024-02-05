@@ -1,6 +1,8 @@
 import asyncio
+import inspect
 import logging
 from abc import ABC, abstractmethod
+from types import NoneType
 from typing import Callable, Awaitable, Optional, Union
 
 from taskorbit.timer import TimerManager
@@ -21,6 +23,14 @@ class BaseHandler(ABC):
         self.close_timeout: Optional[int] = None
         self.on_close: Optional[Callable[[], Awaitable[None]]] = None
 
+        if (
+            not isinstance(self.on_execution_timeout, Callable | NoneType) or
+            not isinstance(self.on_close, Callable | NoneType) or
+            inspect.isclass(self.on_execution_timeout) or
+            inspect.isclass(self.on_close)
+        ):
+            raise TypeError("The callback must be either a function or NoneType")
+
     async def _execution(self) -> None:
         if self.on_execution_timeout is not None:
             await self.on_execution_timeout()
@@ -28,6 +38,9 @@ class BaseHandler(ABC):
             logger.debug(f"Please wait, the task-{self.uuid} is still in progress...")
 
     async def _close(self, *args, **kwargs) -> None:
+        if self.on_close is not None:
+            await self.on_close()
+
         logger.debug("The timeout has expired and the task is being closed...")
         if self.__task is not None:
             self.__task.cancel()
