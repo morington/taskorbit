@@ -105,10 +105,12 @@ You can send messages to a thread using the pub method. Generate a unique UUID f
 
 ```python
 # Data messages for tasks:
-await broker.pub({"uuid": _uuuid, "type_event": "TEST_CLASS", "data": {"some_data": 123}}))
+uuid = uuid.uuid4().hex
+await broker.pub({"uuid": uuid, "type_event": "TEST_CLASS", "data": {"some_data": 123}}))
 
-# Service messages to work with tasks:
-await broker.pub({"uuid": _uuuid, "command": Commands.GET_STATUS})
+# Service messages to work with tasks
+# Service messages are not stored in the task pool. It needs to send the UUID it will work with
+await broker.pub({"uuid": uuid, "command": Commands.GET_STATUS})
 ```
 
 The framework also supports outer-middlewares and inner-middlewares. Middlewares fully support context managers throughout task processing.
