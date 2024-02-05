@@ -6,13 +6,9 @@ import structlog
 from magic_filter import F
 
 import setup_logger
-from taskorbit.dispatching.handler import BaseHandler
+from taskorbit import Dispatcher, Router, Middleware, Message, BaseHandler, Metadata
 from taskorbit.brokers.nats.client import nats_broker
-from taskorbit.dispatching.dispatcher import Dispatcher
-from taskorbit.dispatching.router import Router
 from taskorbit.enums import Commands
-from taskorbit.middlewares.middleware import Middleware
-from taskorbit.models import Metadata, Message
 
 logger = structlog.getLogger(__name__)
 
