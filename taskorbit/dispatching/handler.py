@@ -65,15 +65,15 @@ class BaseHandler(ABC):
     async def handle(self, *args, **kwargs) -> None: ...
 
     async def __call__(self, fields_execution_callback: dict[str, Any], fields_close_callback: dict[str, Any], **kwargs) -> None:
-        try:
-            self.__task = asyncio.create_task(self.handle(**kwargs))
-            self.__task.add_done_callback(self.cancel)
+        # try:
+        self.__task = asyncio.create_task(self.handle(**kwargs))
+        self.__task.add_done_callback(self.cancel)
 
-            await self._timer_manager.start_timer(self.execution_timeout, self._execution, **fields_execution_callback)
-            await self._timer_manager.start_timer(self.close_timeout, self._close, **fields_close_callback)
-            await self.__task
-        except Exception as e:
-            logger.debug(f"An error occurred: {e.args[0]}")
+        await self._timer_manager.start_timer(self.execution_timeout, self._execution, **fields_execution_callback)
+        await self._timer_manager.start_timer(self.close_timeout, self._close, **fields_close_callback)
+        await self.__task
+        # except Exception as e:
+        #     logger.debug(f"An error occurred: {e.args[0]}")
 
 
 class Handler(BaseHandler):

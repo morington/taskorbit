@@ -47,21 +47,21 @@ class Dispatcher(Router):
         if isinstance(metadata, ServiceMessage):
             _ = asyncio.create_task(self._service_processing(metadata))
         elif isinstance(metadata, Message):
-            try:
-                task = asyncio.create_task(self._metadata_processing(metadata), name=metadata.uuid)
-                task.add_done_callback(self.__cb_close_task)
-                self.queue[metadata.uuid] = task
-            except Exception as e:
-                logger.error(e.args[0])
+            # try:
+            task = asyncio.create_task(self._metadata_processing(metadata), name=metadata.uuid)
+            task.add_done_callback(self.__cb_close_task)
+            self.queue[metadata.uuid] = task
+            # except Exception as e:
+            #     logger.error(e.args[0])
 
     async def _metadata_processing(self, metadata: Metadata) -> None:
         data = self.context_data.copy()
 
-        try:
-            call_processing: partial = await self.middleware.middleware_processing(handler=self._message_processing, metadata=metadata)
-            await call_processing(metadata=metadata, data=data)
-        except Exception as e:
-            logger.error(f"{e.args[0]}")
+        # try:
+        call_processing: partial = await self.middleware.middleware_processing(handler=self._message_processing, metadata=metadata)
+        await call_processing(metadata=metadata, data=data)
+        # except Exception as e:
+        #     logger.error(f"{e.args[0]}")
 
     async def _message_processing(self, metadata: Message, data: dict[str, Any]) -> Any:
         handler: Type[HandlerType] = await find_handler(
@@ -89,7 +89,7 @@ class Dispatcher(Router):
 
         call_processing: partial | Callable = await self.inner_middleware.middleware_processing(handler=_handler_processing, metadata=metadata)
 
-        try:
-            return await call_processing(metadata=metadata, data=data)
-        except Exception as e:
-            logger.error(f"{e.args[0]}")
+        # try:
+        return await call_processing(metadata=metadata, data=data)
+        # except Exception as e:
+        #     logger.error(f"{e.args[0]}")
