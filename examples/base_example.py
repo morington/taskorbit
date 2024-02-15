@@ -13,7 +13,7 @@ from taskorbit.enums import Commands
 logger = structlog.getLogger(__name__)
 
 # Please create a dispatcher with 3 maximum tasks at the same time
-dp = Dispatcher(max_queue_size=3)
+dp = Dispatcher(max_pool_size=3)
 # Use routers to expand your service more flexibly
 router = Router()
 
@@ -119,7 +119,6 @@ class MyHandler(BaseHandler):
     def __init__(self, metadata: Metadata) -> None:
         super().__init__()
         """
-        :param uuid: str - Unique task id
         :param execution_timeout: Optional[int] = None - Timeout for waiting.
             After which the `on_execution_timeout` callback is executed. By default, just the log is output.
         :param on_execution_timeout: Optional[Callable[[], Awaitable[None]]] = None - Callback triggered after timeout
@@ -129,7 +128,6 @@ class MyHandler(BaseHandler):
         :param on_close: Optional[Callable[[], Awaitable[None]]] = None - The callback triggered when the task
             timeout has expired closes the current task. By default it outputs a log.
         """
-        self.uuid = metadata.uuid
 
         # After 2 seconds, please display the log that you need to wait more
         self.execution_timeout = 2

@@ -61,7 +61,7 @@ async def main():
     """
     Let's create our dispatcher for example for 5 parallel tasks. And also added to the context data of our bot.
     """
-    dp = Dispatcher(max_queue_size=5)
+    dp = Dispatcher(max_pool_size=5)
     dp['bot']: Bot = bot
     dp.include_router(router)
 

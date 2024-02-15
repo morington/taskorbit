@@ -48,9 +48,9 @@ class Router:
             cls = Handler()
             cls.name = handler.__name__
             cls.execution_timeout = execution_timeout
-            cls.on_execution_timeout = on_execution_timeout
+            cls.on_execution_cb = on_execution_timeout
             cls.close_timeout = close_timeout
-            cls.on_close = on_close
+            cls.on_close_cb = on_close
             cls.handle = handler
             self.handlers[cls] = validate_filters(filters)
             return handler

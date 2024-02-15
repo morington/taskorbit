@@ -7,7 +7,7 @@ from taskorbit.enums import TaskStatus
 logger = logging.getLogger(__name__)
 
 
-class Queue(dict):
+class Pool(dict):
     def __init__(self, max_size: Optional[int] = None) -> None:
         super().__init__()
         if max_size is None:
