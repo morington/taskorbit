@@ -2,7 +2,7 @@
 
 ---
 
-# v0.1.6a
+# v0.1.7a (not out yet!)
 - Added `CHANGELOG.md` for easy tracking of changes in each version.
 
 ### Changes in API
