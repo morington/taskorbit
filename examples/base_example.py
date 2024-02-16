@@ -109,6 +109,7 @@ async def main():
     await broker.include_dispatcher(dp)
 
 
+# The dispatcher is inherited from routers, we can directly attach handlers to it, but we should not do this. Projects in one file are bad.
 @dp.include_class_handler(F.metadata.type_event == "TEST_CLASS")
 class MyHandler(BaseHandler):
     """
