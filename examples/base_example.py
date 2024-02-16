@@ -86,9 +86,9 @@ async def main():
     # the dispatcher no more than 3 processes at the same time.
     # The task is sent back to the broker and will return soon.
     # --> UPD: Service messages no longer load the queue. All service messages are executed out of queue.
-    await broker.pub({"uuid": uuid.uuid4().hex, "type_event": "TEST_CLASS", "data": {"some_data": 123}})
+    # await broker.pub({"uuid": uuid.uuid4().hex, "type_event": "TEST_CLASS", "data": {"some_data": 123}})
     await broker.pub({"uuid": uuid.uuid4().hex, "type_event": "TEST_FUNCTION", "data": {"some_data": 123}})
-    await broker.pub({"uuid": uuid.uuid4().hex, "type_event": "TEST_CLASS", "data": {"some_data": 123}})
+    # await broker.pub({"uuid": uuid.uuid4().hex, "type_event": "TEST_CLASS", "data": {"some_data": 123}})
 
     """
     I can send some data directly to the dispatcher.
@@ -143,7 +143,15 @@ class MyHandler(BaseHandler):
         logger.info(f"{name}, Done!")
 
 
-@router.include_handler(F.metadata.type_event == "TEST_FUNCTION")
+async def execution_function(metadata: Message):
+    """
+    In this function we will do something when the task's wait timer expires.
+    The `on_close_cb` is also created, but at the end of execution the task will be completed.
+    """
+    logger.debug(f'Wait some more! Need more time! task-{metadata.uuid}')
+
+
+@router.include_handler(F.metadata.type_event == "TEST_FUNCTION", execution_timeout=2, on_execution_cb=execution_function, close_timeout=20)
 async def handle_function(metadata: Message, name: str) -> None:
     """
     Easy function, we can still set timeouts and callbacks for them. This is done in the decorator.
@@ -151,7 +159,8 @@ async def handle_function(metadata: Message, name: str) -> None:
 
     Simulation of business logic operation
     """
-    logger.info(f"{name}, function-handler is complete!")
+    await asyncio.sleep(4)
+    logger.info(f"{name}, function-handler is complete! task-{metadata.uuid}")
 
 
 if __name__ == "__main__":
