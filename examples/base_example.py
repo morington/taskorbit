@@ -29,7 +29,7 @@ class DatabasePoolSimulation:
 class MyMiddleware(Middleware):
     """
     An example of a simple middleware is shown.
-    It allows processing incoming data before handler detection (middleware) and after detection (outer_middleware).
+    It allows processing incoming data before handler detection (middleware) and after detection (inner_middleware).
     You can pass data to both init and call.
     """
 
